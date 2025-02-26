@@ -5,8 +5,8 @@ import functions
 import yolopy
 
 labelsPath = "yolo/coco.names"
-weightsPath = "yolo/yolov3.weights"
-configPath = "yolo/yolov3.cfg"
+weightsPath = "yolo/yolov4-tiny.weights"
+configPath = "yolo/yolov4-tiny.cfg"  
 project_id = "blindbot-4f356"
 
 engine = speech.speech_to_text()

@@ -1,5 +1,5 @@
 import cv2
-import functions  # Assuming this has get_brightness()
+import functions  
 
 def detect_intent_texts(project_id, session_id, texts, language_code):
     """
