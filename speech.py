@@ -6,10 +6,9 @@ class Speech:
         self.recognizer = sr.Recognizer()
         self.engine = pyttsx3.init()
 
-        # Optional: Adjust the voice and speed
         voices = self.engine.getProperty('voices')
-        self.engine.setProperty('voice', voices[0].id)  # Change if you want a different voice
-        self.engine.setProperty('rate', 150)  # Adjust speech speed (default ~200)
+        self.engine.setProperty('voice', voices[0].id) 
+        self.engine.setProperty('rate', 150)  
 
     def recognize_speech_from_mic(self):
         with sr.Microphone() as source:

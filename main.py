@@ -3,6 +3,7 @@ import detect
 import datetime
 import functions
 import yolopy
+from read import read_text_from_camera
 
 labelsPath = "yolo/coco.names"
 weightsPath = "yolo/yolov4-tiny.weights"
@@ -46,8 +47,8 @@ while True:
                 brightness = functions.get_brightness()
                 engine.text_speech(f"It is {brightness} outside")
             elif intent == "Read":
-                engine.text_speech("Reading text")
-                detect.detect_text(engine)
+                engine.text_speech("I will capture an image and read any text I find.")
+                read_text_from_camera()
             elif intent == "Time":
                 currentDT = datetime.datetime.now()
                 engine.text_speech(f"The time is {currentDT.hour} hours and {currentDT.minute} minutes")
