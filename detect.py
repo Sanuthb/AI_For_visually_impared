@@ -16,11 +16,11 @@ def detect_intent_texts(project_id, session_id, texts, language_code):
     elif any(keyword in text for keyword in ["read", "text", "document"]):
         return "Read", "Reading detected text."
     else:
-        return "Unknown", "I didn't understand."
+        return "GeneralQuery", text  
 
 def describe_scene(model, engine):
     """
-    Captures an image, detects objects, and describes the surroundings concisely.
+    Captures an image, detects objects using YOLOv8, and describes the surroundings.
     """
     cam = cv2.VideoCapture(0)
     ret, frame = cam.read()
@@ -30,11 +30,18 @@ def describe_scene(model, engine):
         engine.text_speech("Couldn't capture image.")
         return
 
-    # Object Detection
-    detected_objects = model.detect_objects(frame)
+    # Object Detection using YOLOv8
+    results = model(frame)  # Run YOLOv8 inference
+    detected_objects = []
 
-    # Remove confidence values and duplicates
-    unique_objects = set(obj[0] for obj in detected_objects)
+    for result in results:
+        for box in result.boxes:
+            cls_id = int(box.cls[0])
+            label = model.names[cls_id]  # Get class name
+            detected_objects.append(label)
+
+    # Remove duplicates
+    unique_objects = set(detected_objects)
 
     # Brightness Analysis
     brightness_str = functions.get_brightness()  
@@ -59,7 +66,6 @@ def describe_scene(model, engine):
 
     engine.text_speech(response)
 
-
 def detect_text(engine):
     """
     Captures an image and attempts to read text.
@@ -74,3 +80,5 @@ def detect_text(engine):
 
     # Placeholder for OCR Implementation (Tesseract or Google Vision)
     engine.text_speech("Text detection is not implemented yet. Consider using Tesseract OCR.")
+
+

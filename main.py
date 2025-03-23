@@ -2,16 +2,15 @@ import speech
 import detect
 import datetime
 import functions
-import yolopy
+import gemini  # Import Gemini AI functions
 from read import read_text_from_camera
+from ultralytics import YOLO  
 
-labelsPath = "yolo/coco.names"
-weightsPath = "yolo/yolov4-tiny.weights"
-configPath = "yolo/yolov4-tiny.cfg"  
+# Load YOLO model
+model = YOLO("yolov8s.pt")  
+
 project_id = "blindbot-4f356"
-
 engine = speech.speech_to_text()
-model = yolopy.yolo(labelsPath, weightsPath, configPath)
 
 listening = False
 
@@ -52,6 +51,16 @@ while True:
             elif intent == "Time":
                 currentDT = datetime.datetime.now()
                 engine.text_speech(f"The time is {currentDT.hour} hours and {currentDT.minute} minutes")
+            elif intent == "GeneralQuery":
+                description = gemini.fetch_description(text)
+                engine.text_speech(description)
+
+                engine.text_speech("Would you like more details?")
+                follow_up = engine.recognize_speech_from_mic()
+
+                if follow_up and "yes" in follow_up.lower():
+                    additional_info = gemini.ask_gemini(text)
+                    engine.text_speech(additional_info)
             else:
                 engine.text_speech(f"I detected: {intent}. Response: {text}")
         else:
