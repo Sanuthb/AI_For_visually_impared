@@ -6,6 +6,10 @@ import gemini  # Import Gemini AI functions
 from read import read_text_from_camera
 from ultralytics import YOLO  
 
+
+import subprocess
+subprocess.Popen(["python3", "Navigation.py"])
+
 # Load YOLO model
 model = YOLO("yolov8s.pt")  
 
