@@ -15,6 +15,8 @@ def detect_intent_texts(project_id, session_id, texts, language_code):
         return "Brightness", "Checking the brightness level."
     elif any(keyword in text for keyword in ["read", "text", "document"]):
         return "Read", "Reading detected text."
+    elif any(keyword in text for keyword in ["navigate",'location',"destination","route"]):
+        return "Navigate","Finding the routes"
     else:
         return "GeneralQuery", text  
 

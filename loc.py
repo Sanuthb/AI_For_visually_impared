@@ -1,7 +1,8 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
-# import webbrowser
+import pyttsx3
+import webbrowser
 import os
 
 app = Flask(__name__)
@@ -16,11 +17,10 @@ DEST_LON = 80.2707
 
 # Store last received location
 last_location = {"latitude": None, "longitude": None}
-last_summary = None
 
 @app.route('/receive_location', methods=['POST'])
 def receive_location():
-    global last_location, last_summary
+    global last_location
 
     data = request.json
 
@@ -35,6 +35,11 @@ def receive_location():
     # Update last known location
     last_location["latitude"] = latitude
     last_location["longitude"] = longitude
+
+    # Text-to-speech for location received
+    engine = pyttsx3.init()
+    engine.say("Location received. Fetching directions.")
+    engine.runAndWait()
 
     # Fetch navigation instructions
     route_url = "https://api.openrouteservice.org/v2/directions/driving-car/geojson"
@@ -65,20 +70,21 @@ def receive_location():
 
         print(directions)
 
-        # Construct summary of first few steps
-        steps_to_speak = " . ".join([step["direction"] for step in directions[:3]])
-        last_summary = steps_to_speak
+        # Speak the first few steps
+        try:
+            steps_to_speak = " . ".join([step["direction"] for step in directions[:3]])
+            engine.say(steps_to_speak)
+            engine.runAndWait()
+        except RuntimeError as e:
+            print(f"Text-to-speech error: {e}")
 
-        return jsonify({"message": "Updated navigation", "current_location": last_location, "directions": directions, "summary": last_summary})
+        return jsonify({"message": "Updated navigation", "current_location": last_location, "directions": directions})
 
     else:
         return jsonify({"error": "Failed to call navigation API", "details": response.text}), 500
 
-@app.route('/last_summary', methods=['GET'])
-def get_summary():
-    return jsonify({"summary": last_summary})
-
 if __name__ == '__main__':
     # Open the HTML file in default browser
-    # webbrowser.open("file://" + os.path.realpath("index.html"))
+    webbrowser.open("file://" + os.path.realpath("index.html"))
     app.run(host="0.0.0.0", port=5002, debug=True)
+    

@@ -61,6 +61,28 @@ while True:
                 if follow_up and "yes" in follow_up.lower():
                     additional_info = gemini.ask_gemini(text)
                     engine.text_speech(additional_info)
+            elif intent == "Navigate":
+                import webbrowser
+                import time
+                import requests
+                import os
+
+                engine.text_speech("Opening map and fetching directions.")
+                webbrowser.open("file://" + os.path.realpath("index.html"))
+
+                # Give the frontend time to load and send location
+                time.sleep(5)
+
+                try:
+                    response = requests.get("http://localhost:5002/last_summary")
+                    if response.status_code == 200:
+                        summary = response.json().get("summary", "")
+                        engine.text_speech(summary)
+                    else:
+                        engine.text_speech("Failed to retrieve navigation summary.")
+                except Exception as e:
+                    print("Navigation fetch error:", e)
+                    engine.text_speech("Something went wrong while fetching directions.")
             else:
                 engine.text_speech(f"I detected: {intent}. Response: {text}")
         else:
