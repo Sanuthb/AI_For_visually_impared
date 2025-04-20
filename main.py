@@ -2,10 +2,9 @@ import speech
 import detect
 import datetime
 import functions
-import gemini  # Import Gemini AI functions
+import gemini  
 from read import read_text_from_camera
 from ultralytics import YOLO  
-
 
 import subprocess
 subprocess.Popen(["python3", "Navigation.py"])
@@ -71,23 +70,49 @@ while True:
                 import requests
                 import os
 
-                engine.text_speech("Opening map and fetching directions.")
-                webbrowser.open("file://" + os.path.realpath("index.html"))
+                engine.text_speech("Where would you like to go?")
+                destination_resp = engine.recognize_speech_from_mic()
 
-                # Give the frontend time to load and send location
-                time.sleep(5)
+                if destination_resp:
+                    engine.text_speech(f"Searching location for {destination_resp}")
+                    try:
+                        dest_url = f"https://nominatim.openstreetmap.org/search?format=json&q={requests.utils.quote(destination_resp)}"
+                        headers = {"User-Agent": "blindbot/1.0"}
+                        dest_data=0
 
-                try:
-                    response = requests.get("http://localhost:5002/last_summary")
-                    if response.status_code == 200:
-                        summary = response.json().get("summary", "")
-                        engine.text_speech(summary)
-                    else:
-                        engine.text_speech("Failed to retrieve navigation summary.")
-                except Exception as e:
-                    print("Navigation fetch error:", e)
-                    engine.text_speech("Something went wrong while fetching directions.")
-            else:
-                engine.text_speech(f"I detected: {intent}. Response: {text}")
+                        resdes = requests.get(dest_url, headers=headers)
+                        if resdes.status_code == 200 and resdes.text.strip():
+                                    dest_data = resdes.json()
+                        else:
+                                    print("Failed to fetch location data.")
+                                    print("Status code:", response.status_code)
+                                    print("Response text:", response.text)
+                                    engine.text_speech("Could not fetch the location from the internet.")
+
+                        if len(dest_data) > 0:
+                                    dest_location = dest_data[0]
+                                    dest_lat = float(dest_location["lat"])
+                                    dest_lon = float(dest_location["lon"])
+
+                                    engine.text_speech("Opening map and fetching directions.")
+                                    webbrowser.open("file://" + os.path.realpath("index.html"))
+                                    time.sleep(5)
+                                    response = requests.post("http://localhost:5002/receive_location", json={
+                                        "dest_latitude": dest_lat,
+                                        "dest_longitude": dest_lon
+                                    })
+
+                                    if response.status_code == 200:
+                                        summary = response.json().get("summary", "")
+                                        engine.text_speech(summary)
+                                    else:
+                                        engine.text_speech("Failed to retrieve navigation summary.")
+                        else:
+                                    engine.text_speech("Could not find the destination location you mentioned.")
+                    except Exception as e:
+                        print("Geolocation error:", e)
+                        engine.text_speech("Something went wrong while fetching the coordinates.")
+                else:
+                    engine.text_speech("I didn't catch the destination.")
         else:
             engine.text_speech("Sorry, I could not understand.")
