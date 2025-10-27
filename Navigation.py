@@ -8,8 +8,7 @@ app = Flask(__name__)
 CORS(app)
 
 # OpenRouteService API Key
-ORS_API_KEY = "5b3ce3597851110001cf62489c92d2f752544257b50b50e1a09f2288"
-
+ORS_API_KEY = "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjFlZDhmZjdmNTc3MTQ4Y2E4MTZkYmRkMTM3MGQ5OTQ5IiwiaCI6Im11cm11cjY0In0="
 
 # Store last received location
 last_location = {"latitude": None, "longitude": None}
@@ -64,7 +63,7 @@ def receive_location():
             "time": step["duration"]
         } for step in steps]
 
-        last_summary = " . ".join([step["direction"] for step in directions[:3]])
+        last_summary = " . ".join([step["direction"] for step in directions[:]])
 
         return jsonify({
             "message": "Updated navigation",

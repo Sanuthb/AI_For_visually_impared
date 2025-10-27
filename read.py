@@ -92,7 +92,7 @@ def read_text_from_camera():
             print(summarized_text)
 
             # Speak the final sentence
-            reader.read_and_speak(summarized_text)
+            reader.read_and_speak(raw_text)
         else:
             print("No text detected in the image.")
             reader.read_and_speak("No text detected in the image.")

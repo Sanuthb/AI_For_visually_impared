@@ -8,13 +8,16 @@
 <body>
     <h1>Live Location Tracker</h1>
     <!-- Automatically triggers location sending on page load -->
-
+    <p id="lat"></p>
+    <p id="long"></p>
     <script>
         function sendLocation() {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(position => {
                     const latitude = position.coords.latitude;
                     const longitude = position.coords.longitude;
+                  document.getElementById("lat").innerHTML = latitude;
+                    document.getElementById("long").innerHTML = longitude;
 
                     fetch("http://localhost:5002/receive_location", {
                         method: "POST",
