@@ -1,14 +1,14 @@
 import speech_recognition as sr
-import pyttsx3  
+import pyttsx3 
+import threading
+
+# Global Lock to ensure only one thread initializes or uses the engine at a time
+TTS_LOCK = threading.Lock() 
 
 class Speech:
     def __init__(self):
         self.recognizer = sr.Recognizer()
-        self.engine = pyttsx3.init()
-
-        voices = self.engine.getProperty('voices')
-        self.engine.setProperty('voice', voices[0].id) 
-        self.engine.setProperty('rate', 150)  
+        # CRITICAL FIX: The engine is NOT initialized here. It is initialized per-call.
 
     def recognize_speech_from_mic(self):
         with sr.Microphone() as source:
@@ -25,9 +25,35 @@ class Speech:
             return "Error with speech recognition service"
 
     def text_speech(self, text):
-        print(f"Speaking: {text}")  
-        self.engine.say(text)
-        self.engine.runAndWait()
+        """
+        Fix: Initializes a new engine for every call, speaks, and cleanly stops it 
+        within the lock to achieve thread safety.
+        """
+        print(f"Speaking: {text}") 
+        
+        # 1. Acquire the lock to ensure sequential access
+        with TTS_LOCK:
+            try:
+                # 2. Initialize the engine FRESH inside the lock
+                engine = pyttsx3.init()
+                
+                # 3. Set properties
+                voices = engine.getProperty('voices')
+                if voices:
+                    engine.setProperty('voice', voices[0].id) 
+                engine.setProperty('rate', 150)
+                
+                # 4. Speak
+                engine.say(text)
+                
+                # 5. Run and wait (Blocks the current thread until speech is done)
+                engine.runAndWait() 
+                
+                # 6. Stop/Destroy the engine instance (CRUCIAL STEP)
+                engine.stop()
+                
+            except Exception as e:
+                print(f"FATAL TTS ERROR: {e}") 
 
 def speech_to_text():
     return Speech()

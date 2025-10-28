@@ -1,6 +1,6 @@
 import google.generativeai as genai
 
-genai.configure(api_key="AIzaSyA0evdRguiOGlIQ0JgIzwrx-Bb0JVtcjLY")
+genai.configure(api_key="AIzaSyCxAqDEbJp-BoBdXCT9SW43K8loaSpxi_0")
 model = genai.GenerativeModel("gemini-2.0-flash")
 
 def fetch_description(query):
