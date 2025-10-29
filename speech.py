@@ -8,7 +8,7 @@ TTS_LOCK = threading.Lock()
 class Speech:
     def __init__(self):
         self.recognizer = sr.Recognizer()
-        # CRITICAL FIX: The engine is NOT initialized here. It is initialized per-call.
+        # The engine is NOT initialized here to prevent shared state conflict.
 
     def recognize_speech_from_mic(self):
         with sr.Microphone() as source:
@@ -31,7 +31,6 @@ class Speech:
         """
         print(f"Speaking: {text}") 
         
-        # 1. Acquire the lock to ensure sequential access
         with TTS_LOCK:
             try:
                 # 2. Initialize the engine FRESH inside the lock
