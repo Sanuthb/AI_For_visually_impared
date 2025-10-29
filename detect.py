@@ -26,15 +26,14 @@ def describe_scene(model, engine, frame_data):
     and describes the surroundings.
     """
     
-    # --- FIX: Removed all cv2.VideoCapture() logic ---
     if frame_data is None:
         engine.text_speech("Couldn't capture image. Camera feed is down.")
         return
-    # frame variable now holds the data passed from main.py
+    
     frame = frame_data 
 
-    # Object Detection using YOLOv8
-    results = model(frame)  # Run YOLOv8 inference
+    # Object Detection using YOLOv8 - CRITICAL: Use verbose=False and don't display
+    results = model(frame, verbose=False)  # Run YOLOv8 inference without verbose output
     detected_objects = []
 
     for result in results:
@@ -46,10 +45,8 @@ def describe_scene(model, engine, frame_data):
     # Remove duplicates
     unique_objects = set(detected_objects)
 
-    # Brightness Analysis
-    # NOTE: Since frame_data is available, you could calculate brightness from the frame here 
-    # instead of using a separate function if 'functions.get_brightness()' doesn't need a live camera.
-    brightness_str = functions.get_brightness()  
+    # Brightness Analysis - Use the frame_data directly
+    brightness_str = functions.get_brightness(frame_data)
     brightness_levels = {
         "dark": "dimly-lit",
         "moderate": "moderately-lit",
@@ -71,16 +68,39 @@ def describe_scene(model, engine, frame_data):
 
     engine.text_speech(response)
 
-def detect_text(engine, frame_data): # <--- UPDATED SIGNATURE
+def detect_text(engine, frame_data):
     """
-    Receives image data and attempts to read text.
+    Receives image data and attempts to read text using OCR.
+    CRITICAL: NO camera access - uses provided frame_data only.
     """
     
-    # --- FIX: Removed all cv2.VideoCapture() logic ---
     if frame_data is None:
         engine.text_speech("Couldn't capture image. Camera feed is not ready.")
         return
 
-    # Placeholder for OCR Implementation (Tesseract or Google Vision)
-    engine.text_speech("Text detection is not implemented yet. Please integrate Tesseract OCR using the provided frame data.")
-
+    # Save the frame temporarily for OCR processing
+    temp_image_path = "temp_ocr_image.jpg"
+    try:
+        cv2.imwrite(temp_image_path, frame_data)
+        
+        # Import OCR functionality
+        try:
+            import easyocr
+            reader = easyocr.Reader(['en'], verbose=False)
+            results = reader.readtext(temp_image_path, detail=0)
+            
+            if results:
+                extracted_text = " ".join(results)
+                engine.text_speech(f"I detected the following text: {extracted_text}")
+            else:
+                engine.text_speech("No text detected in the image.")
+                
+        except ImportError:
+            engine.text_speech("Text detection library is not installed. Please install EasyOCR.")
+        except Exception as e:
+            print(f"OCR Error: {e}")
+            engine.text_speech("There was an error reading the text.")
+            
+    except Exception as e:
+        print(f"Error saving frame: {e}")
+        engine.text_speech("Could not process the image for text detection.")

@@ -3,7 +3,7 @@ import detect
 import datetime
 import functions
 import gemini 
-from read import read_text_from_camera
+from read import read_text_from_frame
 from ultralytics import YOLO 
 from deep_sort_realtime.deepsort_tracker import DeepSort
 
@@ -24,6 +24,7 @@ import webbrowser
 LAST_ANNOUNCED_WARNING = "" 
 LATEST_FRAME = None          # Stores the latest frame from the monitoring thread
 FRAME_LOCK = threading.Lock() # Lock to ensure thread-safe access to LATEST_FRAME
+MONITORING_ACTIVE = True     # Flag to control monitoring thread
 
 # =======================================================
 # === 1. HELPER FUNCTIONS ===
@@ -64,7 +65,7 @@ def capture_latest_frame():
 
 def real_time_monitoring_thread(yolo_model, speech_engine):
     """Handles continuous video capture, DeepSort tracking, and critical obstacle warnings."""
-    global LAST_ANNOUNCED_WARNING, LATEST_FRAME
+    global LAST_ANNOUNCED_WARNING, LATEST_FRAME, MONITORING_ACTIVE
 
     # --- Initialization ---
     tracker = DeepSort(max_age=30)
@@ -79,11 +80,14 @@ def real_time_monitoring_thread(yolo_model, speech_engine):
         print("Error: Could not open video stream/camera.")
         return
 
-    while True:
+    print("Monitoring thread: Camera initialized successfully")
+
+    while MONITORING_ACTIVE:
         ret, frame = cap.read()
         if not ret:
-            print("Video stream failed. Stopping monitoring thread.")
-            break
+            print("Warning: Failed to read frame, retrying...")
+            time.sleep(0.1)
+            continue
 
         frame_height, frame_width, _ = frame.shape
         
@@ -174,6 +178,7 @@ def real_time_monitoring_thread(yolo_model, speech_engine):
 def execute_intent_async(target_func, *args, **kwargs):
     """Runs a time-consuming user intent in a new thread to prevent blocking the main voice loop."""
     t = threading.Thread(target=target_func, args=args, kwargs=kwargs)
+    t.daemon = True
     t.start()
 
 
@@ -202,6 +207,9 @@ if __name__ == '__main__':
     monitor_thread.daemon = True 
     monitor_thread.start()
     print("Real-time DeepSort monitoring started.")
+
+    # Give monitoring thread time to initialize
+    time.sleep(2)
 
     while True:
         if not listening:
@@ -239,7 +247,6 @@ if __name__ == '__main__':
                                 speech_engine.text_speech("Error: Camera feed is not ready. Please wait for monitoring to start.")
                                 return
 
-                            # NOTE: frame_to_analyze is passed as the third argument now (the fix)
                             detect.describe_scene(yolo_model, speech_engine, frame_to_analyze)
                         
                         execute_intent_async(run_describe_async, model, engine)
@@ -247,7 +254,6 @@ if __name__ == '__main__':
                     elif intent == "Read":
                         engine.text_speech("I will capture an image and read any text I find.")
                         
-                        # 🐛 FIX: Frame capture logic must be wrapped and passed to detect_text
                         def run_read_async(speech_engine):
                             frame_to_analyze = capture_latest_frame()
                             
@@ -255,8 +261,6 @@ if __name__ == '__main__':
                                 speech_engine.text_speech("Error: Camera feed is not ready. Please wait for monitoring to start.")
                                 return
                             
-                            # NOTE: Assuming read.py or detect.py has a function updated to take frame data
-                            # Based on previous context, we use detect.detect_text(engine, frame_data)
                             detect.detect_text(speech_engine, frame_to_analyze) 
                         
                         execute_intent_async(run_read_async, engine)
@@ -322,8 +326,14 @@ if __name__ == '__main__':
 
                     # --- Intents that DO NOT BLOCK (run immediately) ---
                     elif intent == "Brightness":
-                        brightness = functions.get_brightness()
-                        engine.text_speech(f"It is {brightness} outside")
+                        # FIX: Get frame from monitoring thread instead of opening new camera
+                        frame_for_brightness = capture_latest_frame()
+                        
+                        if frame_for_brightness is not None:
+                            brightness = functions.get_brightness(frame_for_brightness)
+                            engine.text_speech(f"It is {brightness} outside")
+                        else:
+                            engine.text_speech("Camera feed is not ready yet")
                     
                     elif intent == "Time":
                         currentDT = datetime.datetime.now()
